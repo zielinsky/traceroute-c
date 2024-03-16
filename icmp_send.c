@@ -7,6 +7,7 @@
 #include <strings.h>
 #include <stdio.h>
 #include <assert.h>
+#include <unistd.h>
 #include "icmp_receive.c"
 
 u_int16_t compute_icmp_checksum (const void *buff, int length)
@@ -30,7 +31,7 @@ int set_ttl(int sock_fd, int ttl){
 }
 
 
-int send_echo_request(int sock_fd, struct sockaddr_in *dest_addr, uint16_t id, uint16_t seq){
+int send_echo_request(int sock_fd, struct sockaddr_in *dest_addr, uint16_t id, uint16_t seq, double *send_time){
 	struct icmphdr header;
     bzero(&header, sizeof(header));
 
@@ -43,6 +44,7 @@ int send_echo_request(int sock_fd, struct sockaddr_in *dest_addr, uint16_t id, u
     header.checksum = compute_icmp_checksum((uint16_t *)&header, sizeof(header));;
 
 
+    send_time[seq] = get_time();
     ssize_t bytes_send = sendto(sock_fd,&header, sizeof(header),0,(struct sockaddr *)dest_addr, sizeof(*dest_addr));
     if (bytes_send != sizeof(header)) {
         printf("\n?????????????");
@@ -77,21 +79,19 @@ int main(int argc, char **argv){
     bind(sock_fd, (const struct sockaddr *) &addr, sizeof(addr));
 
 
-    double *res = malloc(4 * sizeof(double));
+    double *send_time = malloc(4 * sizeof(double));
+    int id = getpid();
 
-    for(int ttl = 2; ttl < 10; ttl ++){
+    int finished = 1;
+    for(int ttl = 1; ttl < 64 && (finished == 1); ttl ++){
         set_ttl(sock_fd, ttl);
-        send_echo_request(sock_fd, &addr, 1, 0);
-        res[0] = get_time();
-        send_echo_request(sock_fd, &addr, 1, 1);
-        res[1] = get_time();
-        send_echo_request(sock_fd, &addr, 1, 2);
-        res[2] = get_time();
-        send_echo_request(sock_fd, &addr, 1, 3);
-        res[3] = get_time();
+        printf("%d ", ttl-1);
+        send_echo_request(sock_fd, &addr, id, 0, send_time);
+        send_echo_request(sock_fd, &addr, id, 1, send_time);
+        send_echo_request(sock_fd, &addr, id, 2, send_time);
+        send_echo_request(sock_fd, &addr, id, 3, send_time);
 
-        double* res2 = recv_from(sock_fd, argv[1], 1, 4);
-        printf("%.6fl %.6fl %.6fl %.6fl\n", res2[0] - res[0], res2[1] - res[1], res2[2] - res[2], res2[3] - res[3]);
+        finished = recv_from(sock_fd, argv[1], id, 4, send_time);
     }
     return 0;
 }

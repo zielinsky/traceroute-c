@@ -21,9 +21,12 @@ void print_as_bytes (unsigned char* buff, ssize_t length)
         printf ("%.2x ", *buff);
 }
 
-double *recv_from(int sock_fd, const char* from_ip, int id, int tries){
-    double *res = malloc(tries * sizeof(double));
-    bzero(res, tries * sizeof(double));
+int recv_from(int sock_fd, const char* from_ip, int id, int tries, const double *send_time){
+    int reply_number = 0;
+    int ret = 1;
+    double *elapsed_time = malloc(tries * sizeof(double));
+    char ips[tries][20];
+    bzero(elapsed_time, tries * sizeof(double));
 
     struct sockaddr_in sender;
     socklen_t sender_len = sizeof(sender);
@@ -36,7 +39,7 @@ double *recv_from(int sock_fd, const char* from_ip, int id, int tries){
     int ready;
 
     double t = get_time();
-    while ((get_time() - t) <= 1.0 && tries > 0) {
+    while ((get_time() - t) <= 1.0 && reply_number < tries) {
         ready = poll (&ps, 1, 1000);
 
         while(ready-- && ps.revents == POLLIN){
@@ -70,11 +73,38 @@ double *recv_from(int sock_fd, const char* from_ip, int id, int tries){
             int ip_seq = ntohs(icmp_header->un.echo.sequence);
 
             if(ip_id == id && (strcmp(original_dest_ip_str, from_ip) == 0)){
-                res[ip_seq] = get_time();
-                tries--;
+                strcpy(ips[ip_seq], sender_ip_str);
+                if(strcmp(sender_ip_str, from_ip) == 0){
+                    ret = 0;
+                }
+                elapsed_time[ip_seq] = get_time() - send_time[ip_seq];
+                reply_number++;
             }
 
         }
     }
-    return res;
+    for(int trs = 0; trs < tries; trs++){
+        if((int)(elapsed_time[trs]*1000) == 0)
+            continue;
+        int guardian = 0;
+        for(int i = 0; i < trs; i++){
+            if(strcmp(ips[trs], ips[i]) == 0){
+                guardian = -1;
+            }
+        }
+        if(guardian == 0){
+            printf("%s ", ips[trs]);
+        }
+    }
+
+    for(int trs = 0; trs < tries; trs++){
+        int elapsed_times = (int)(elapsed_time[trs]*1000);
+        if(elapsed_times == 0){
+            printf("* ");
+        }else{
+            printf("%dms ", elapsed_times);
+        }
+    }
+    printf("\n");
+    return ret;
 }
