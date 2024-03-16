@@ -20,7 +20,7 @@ u_int16_t compute_icmp_checksum (const void *buff, int length)
 
 int set_ttl(int sock_fd, int ttl){
     if (setsockopt(sock_fd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) != 0) {
-        printf("\nSetting socket options to TTL failed !");
+        fprintf(stderr, "socket error: problem with setting ttl(%d)!\n", ttl);
         return -1;
     }
     return 0;
@@ -43,23 +43,15 @@ int send_echo_request(int sock_fd, struct sockaddr_in *dest_addr, uint16_t id, u
     send_time[seq] = get_time();
     ssize_t bytes_send = sendto(sock_fd,&header, sizeof(header),0,(struct sockaddr *)dest_addr, sizeof(*dest_addr));
     if (bytes_send != sizeof(header)) {
-        printf("\n?????????????");
+        fprintf(stderr, "send more bytes(%zd) than header size(%zd)\n", bytes_send, sizeof(header));
         return -1;
     }
 
     return 0;
 }
 
-struct sockaddr_in parse_str_address(const char *ip_addr){
-    struct sockaddr_in addr;
-    bzero (&addr, sizeof(addr));
-    addr.sin_family = AF_INET;
-    inet_aton(ip_addr, (struct in_addr *) &addr.sin_addr.s_addr);
-
-    return addr;
-}
-
-void send_n_echo_requests(int n, int ttl, int sock_fd, struct sockaddr_in *dest_addr, uint16_t id, double *send_time){
-    set_ttl(sock_fd, ttl);
-    for(int i = 0; i < n; i++) send_echo_request(sock_fd, dest_addr, id, i, send_time);
+int send_n_echo_requests(int n, int ttl, int sock_fd, struct sockaddr_in *dest_addr, uint16_t id, double *send_time){
+    if(set_ttl(sock_fd, ttl) != 0) return -1;
+    for(int i = 0; i < n; i++) if(send_echo_request(sock_fd, dest_addr, id, i, send_time) != 0) return -1;
+    return 0;
 }

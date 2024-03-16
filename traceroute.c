@@ -9,6 +9,20 @@
 #include <sys/socket.h>
 #include <stdio.h>
 
+struct sockaddr_in parse_str_address(const char *address_str){
+  struct sockaddr_in addr;
+  bzero (&addr, sizeof(addr));
+
+  addr.sin_family = AF_INET;
+
+  if(inet_aton(address_str, (struct in_addr *) &addr.sin_addr.s_addr) == 0){
+    fprintf(stderr, "invalid address: %s\n", address_str);
+    exit(EXIT_FAILURE);
+  }
+
+  return addr;
+}
+
 int main(int argc, char **argv){
   if (argc != 2){
     fprintf(stderr, "correct usage: ./traceroute x.y.z.q \n");
@@ -21,15 +35,20 @@ int main(int argc, char **argv){
     return EXIT_FAILURE;
   }
 
-  int ttl = 1;
   int id = getpid();
   struct sockaddr_in addr = parse_str_address(argv[1]);
-  double *send_time = malloc(4 * sizeof(double));
+  double *send_time;
 
-  do{
+  if((send_time = malloc(4 * sizeof(double))) == NULL){
+    fprintf(stderr, "malloc error: %s\n", strerror(errno));
+    return EXIT_FAILURE;
+  }
+
+  for(int ttl = 1; ttl < 64; ttl++){
     printf("%d ", ttl);
-    send_n_echo_requests(3, ttl, sock_fd, &addr, id, send_time);
-  }while(ttl++ < 64 && receive_and_print_replies(sock_fd, argv[1], id, 3, send_time) == 1);
+    if(send_n_echo_requests(3, ttl, sock_fd, &addr, id, send_time) != 0) continue;
+    if(receive_and_print_replies(sock_fd, argv[1], id, 3, send_time) == 0) break;
+  }
 
   return 0;
 }
