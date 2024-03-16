@@ -7,6 +7,7 @@
 #include <strings.h>
 #include <stdio.h>
 #include <assert.h>
+#include "icmp_receive.c"
 
 u_int16_t compute_icmp_checksum (const void *buff, int length)
 {
@@ -77,9 +78,22 @@ int main(int argc, char **argv){
     struct sockaddr_in addr = string_to_addr(argv[1]);
     bind(sock_fd, (const struct sockaddr *) &addr, sizeof(addr));
 
-    send_echo_request(sock_fd, 1, &addr, 1, 1);
-    send_echo_request(sock_fd, 2, &addr, 1, 2);
-    send_echo_request(sock_fd, 5, &addr, 3, 4);
-    send_echo_request(sock_fd, 10, &addr, 1, 1);
+
+    double *res = malloc(4 * sizeof(double));
+
+    for(int ttl = 0; ttl < 10; ttl ++){
+        send_echo_request(sock_fd, ttl, &addr, 1, 0);
+        res[0] = get_time();
+        send_echo_request(sock_fd, ttl, &addr, 1, 1);
+        res[1] = get_time();
+        send_echo_request(sock_fd, ttl, &addr, 1, 2);
+        res[2] = get_time();
+        send_echo_request(sock_fd, ttl, &addr, 1, 3);
+        res[3] = get_time();
+        double* res2 = recv_from(sock_fd, argv[1], 1, 4);
+        printf("%d %d %d %d", (int)(res2[0] - res[0])*1000, (int)(res2[1] - res[1])*1000, (int)(res2[2] - res[2])*1000, (int)(res2[3] - res[3])*1000);
+        fflush(stdout);
+
+    }
     return 0;
 }

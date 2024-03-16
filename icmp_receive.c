@@ -12,7 +12,7 @@ double get_time()
 {
     struct timespec t;
     clock_gettime(CLOCK_REALTIME, &t);
-    return t.tv_sec + t.tv_nsec*1e-9;
+    return (double)t.tv_sec + (double)t.tv_nsec*1e-9;
 }
 
 void print_as_bytes (unsigned char* buff, ssize_t length)
@@ -21,7 +21,10 @@ void print_as_bytes (unsigned char* buff, ssize_t length)
         printf ("%.2x ", *buff);
 }
 
-int recv_from(int sock_fd){
+double *recv_from(int sock_fd, const char* from_ip, int id, int tries){
+    double *res = malloc(tries * sizeof(double));
+    bzero(res, tries * sizeof(double));
+
     struct sockaddr_in sender;
     socklen_t sender_len = sizeof(sender);
     u_int8_t buffer[IP_MAXPACKET];
@@ -32,57 +35,46 @@ int recv_from(int sock_fd){
     ps.revents = 0;
     int ready;
 
-    double t = get_time();;
-    while ((get_time() - t) <= 1.0) {
-        printf("time taken %.6lf\n", get_time() - t);
+    double t = get_time();
+    while ((get_time() - t) <= 1.0 && tries > 0) {
         ready = poll (&ps, 1, 1000);
 
         while(ready-- && ps.revents == POLLIN){
             ssize_t packet_len = recvfrom (sock_fd, buffer, IP_MAXPACKET, MSG_DONTWAIT, (struct sockaddr*)&sender, &sender_len);
             if (packet_len < 0) {
                 fprintf(stderr, "recvfrom error: %s\n", strerror(errno));
-                return EXIT_FAILURE;
+                continue;
             }
 
             char sender_ip_str[20];
             inet_ntop(AF_INET, &(sender.sin_addr), sender_ip_str, sizeof(sender_ip_str));
-            printf ("Received IP packet with ICMP content from: %s\n", sender_ip_str);
 
             struct ip *ip = (struct ip *)buffer;
             ssize_t	ip_header_len = 4 * (ssize_t)(ip->ip_hl);
+
             struct icmphdr *icmp_header = (struct icmphdr *)(buffer + ip_header_len);
-            if (icmp_header->type == 11){
-                icmp_header = (struct icmphdr *)(buffer + ip_header_len + 28);
+
+            // TTL time out
+            char original_dest_ip_str[20];
+            if (icmp_header->type == 11) {
+                icmp_header = (struct icmphdr *) (buffer + ip_header_len + 28);
+                ip = (struct ip *) (buffer + ip_header_len + 8);
+
+                struct in_addr dst = ip->ip_dst;
+                inet_ntop(AF_INET, &dst, original_dest_ip_str, sizeof(original_dest_ip_str));
+            }else{
+                strcpy(original_dest_ip_str, sender_ip_str);
             }
 
-            struct in_addr src = ip->ip_src;
-            struct in_addr dst = ip->ip_dst;
+            int ip_id = ntohs(icmp_header->un.echo.id);
+            int ip_seq = ntohs(icmp_header->un.echo.sequence);
 
-            printf("%s\n",(char*)inet_ntoa(dst));
-            printf("%s\n",(char*)inet_ntoa(src));
-            printf("%d\n", ntohs(icmp_header->un.echo.id));
-            printf("%d\n", ntohs(icmp_header->un.echo.sequence));
+            if(ip_id == id && (strcmp(original_dest_ip_str, from_ip) == 0)){
+                res[ip_seq] = get_time();
+                tries--;
+            }
 
-            printf("IP header: ");
-            print_as_bytes(buffer, ip_header_len);
-            printf("\n");
-
-            printf("IP data:   ");
-            print_as_bytes(buffer + ip_header_len, packet_len - ip_header_len);
-            printf("\n\n");
         }
     }
-
-}
-
-int main()
-{
-	int sock_fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-	if (sock_fd < 0) {
-		fprintf(stderr, "socket error: %s\n", strerror(errno));
-		return EXIT_FAILURE;
-	}
-
-    recv_from(sock_fd);
-
+    return res;
 }
