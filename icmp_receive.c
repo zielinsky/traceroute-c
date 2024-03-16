@@ -15,17 +15,45 @@ double get_time()
     return (double)t.tv_sec + (double)t.tv_nsec*1e-9;
 }
 
-struct replyInfo {
-    int elapsed_time;
+typedef struct replyInfo {
+    double elapsed_time;
     char address[20];
     bool received;
-};
+} replyInfo_t;
+
+void print_results(replyInfo_t* replies, int tries){
+    int guardian;
+    for(int i = 0; i < tries; i++){
+        if(!replies[i].received)
+            continue;
+
+        guardian = 1;
+        for(int j = 0; j < i; j++){
+            if(strcmp(replies[i].address, replies[j].address) == 0){
+                guardian = 0;
+                break;
+            }
+        }
+        if(guardian)
+            printf("%s ", replies[i].address);
+
+    }
+
+    for(int i = 0; i < tries; i++){
+        if (replies[i].received)
+            printf("%.3fms ", replies[i].elapsed_time);
+        else
+            printf("* ");
+
+    }
+    printf("\n");
+}
 
 int recv_from(int sock_fd, const char* from_ip, int id, int tries, const double *send_time){
-    int reply_number = 0, ret = 1;
+    int reply_number = 0, return_value = 1;
 
-    struct replyInfo replies[tries];
-    bzero(replies, tries * sizeof(struct replyInfo));
+    replyInfo_t replies[tries];
+    bzero(replies, tries * sizeof(replyInfo_t));
 
     char sender_ip_str[20];
     struct sockaddr_in sender;
@@ -74,40 +102,16 @@ int recv_from(int sock_fd, const char* from_ip, int id, int tries, const double 
 
             if(ip_id == id && (strcmp(original_dest_ip_str, from_ip) == 0)){
                 if(strcmp(sender_ip_str, from_ip) == 0){
-                    ret = 0;
+                    return_value = 0;
                 }
                 strcpy(replies[ip_seq].address, sender_ip_str);
-                replies[ip_seq].elapsed_time = (int)((get_time() - send_time[ip_seq]) * 1000);
+                replies[ip_seq].elapsed_time = (get_time() - send_time[ip_seq]) * 1000;
                 replies[ip_seq].received = true;
                 reply_number++;
             }
         }
     }
 
-    int guardian;
-    for(int i = 0; i < tries; i++){
-        if(!replies[i].received)
-            continue;
-
-        guardian = 1;
-        for(int j = 0; j < i; j++){
-            if(strcmp(replies[i].address, replies[j].address) == 0){
-                guardian = 0;
-                break;
-            }
-        }
-        if(guardian)
-            printf("%s ", replies[i].address);
-
-    }
-
-    for(int i = 0; i < tries; i++){
-        if (replies[i].elapsed_time == 0)
-            printf("* ");
-        else
-            printf("%dms ", replies[i].elapsed_time);
-
-    }
-    printf("\n");
-    return ret;
+    print_results(replies, tries);
+    return return_value;
 }
