@@ -1,3 +1,4 @@
+// Patryk Zieliński 330261
 #include <time.h>
 
 double get_time()
