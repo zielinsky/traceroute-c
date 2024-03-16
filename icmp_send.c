@@ -30,11 +30,9 @@ int set_ttl(int sock_fd, int ttl){
 }
 
 
-int send_echo_request(int sock_fd, int ttl, struct sockaddr_in *dest_addr, uint16_t id, uint16_t seq){
+int send_echo_request(int sock_fd, struct sockaddr_in *dest_addr, uint16_t id, uint16_t seq){
 	struct icmphdr header;
     bzero(&header, sizeof(header));
-
-    set_ttl(sock_fd, ttl);
 
     header.type = ICMP_ECHO;
     header.code = 0;
@@ -81,19 +79,19 @@ int main(int argc, char **argv){
 
     double *res = malloc(4 * sizeof(double));
 
-    for(int ttl = 0; ttl < 10; ttl ++){
-        send_echo_request(sock_fd, ttl, &addr, 1, 0);
+    for(int ttl = 2; ttl < 10; ttl ++){
+        set_ttl(sock_fd, ttl);
+        send_echo_request(sock_fd, &addr, 1, 0);
         res[0] = get_time();
-        send_echo_request(sock_fd, ttl, &addr, 1, 1);
+        send_echo_request(sock_fd, &addr, 1, 1);
         res[1] = get_time();
-        send_echo_request(sock_fd, ttl, &addr, 1, 2);
+        send_echo_request(sock_fd, &addr, 1, 2);
         res[2] = get_time();
-        send_echo_request(sock_fd, ttl, &addr, 1, 3);
+        send_echo_request(sock_fd, &addr, 1, 3);
         res[3] = get_time();
-        double* res2 = recv_from(sock_fd, argv[1], 1, 4);
-        printf("%d %d %d %d", (int)(res2[0] - res[0])*1000, (int)(res2[1] - res[1])*1000, (int)(res2[2] - res[2])*1000, (int)(res2[3] - res[3])*1000);
-        fflush(stdout);
 
+        double* res2 = recv_from(sock_fd, argv[1], 1, 4);
+        printf("%.6fl %.6fl %.6fl %.6fl\n", res2[0] - res[0], res2[1] - res[1], res2[2] - res[2], res2[3] - res[3]);
     }
     return 0;
 }
