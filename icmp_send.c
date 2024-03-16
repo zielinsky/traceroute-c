@@ -89,7 +89,6 @@ int main(int argc, char **argv){
         send_echo_request(sock_fd, &addr, id, 0, send_time);
         send_echo_request(sock_fd, &addr, id, 1, send_time);
         send_echo_request(sock_fd, &addr, id, 2, send_time);
-        send_echo_request(sock_fd, &addr, id, 3, send_time);
 
         finished = recv_from(sock_fd, argv[1], id, 4, send_time);
     }

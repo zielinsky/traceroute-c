@@ -15,12 +15,6 @@ double get_time()
     return (double)t.tv_sec + (double)t.tv_nsec*1e-9;
 }
 
-void print_as_bytes (unsigned char* buff, ssize_t length)
-{
-    for (ssize_t i = 0; i < length; i++, buff++)
-        printf ("%.2x ", *buff);
-}
-
 int recv_from(int sock_fd, const char* from_ip, int id, int tries, const double *send_time){
     int reply_number = 0;
     int ret = 1;
