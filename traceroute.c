@@ -1,6 +1,6 @@
 // Patryk Zieliński 330261
-#include "icmp_send.h"
 #include "icmp_receive.h"
+#include "icmp_send.h"
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <stdio.h>
+#include "stdbool.h"
 
 struct sockaddr_in parse_str_address(const char *address_str){
   struct sockaddr_in addr;
@@ -47,7 +48,7 @@ int main(int argc, char **argv){
   for(int ttl = 1; ttl < 64; ttl++){
     printf("%d ", ttl);
     if(send_n_echo_requests(3, ttl, sock_fd, &addr, id+ttl, send_time) != 0) continue;
-    if(receive_and_print_replies(sock_fd, argv[1], id+ttl, 3, send_time) == 0) break;
+    if(receive_and_print_replies(sock_fd, argv[1], id+ttl, 3, send_time, false) == 0) break;
   }
 
   return 0;

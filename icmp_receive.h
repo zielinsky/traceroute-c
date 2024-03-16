@@ -16,8 +16,8 @@ typedef struct replyInfo {
 } replyInfo_t;
 
 // Funkcja wypisująca wyniki otrzymanych odpowiedzi
-void print_results(replyInfo_t* replies, int request_count);
+void print_results(replyInfo_t* replies, int request_count, bool verbose);
 
-int receive_and_print_replies(int sock_fd, const char*expected_address_str, int id, int request_count, const double *request_send_time);
+int receive_and_print_replies(int sock_fd, const char*expected_address_str, int id, int request_count, const double *request_send_time, bool verbose);
 
 #endif//TRACEROUTE_ICMP_RECEIVE_H

@@ -19,7 +19,7 @@ typedef struct replyInfo {
     bool received;
 } replyInfo_t;
 
-void print_results(replyInfo_t* replies, int request_count){
+void print_results(replyInfo_t* replies, int request_count, bool verbose){
     bool is_unique;
     for(int i = 0; i < request_count; i++){
         if(!replies[i].received)
@@ -36,15 +36,26 @@ void print_results(replyInfo_t* replies, int request_count){
 
     }
 
+    double sum = 0;
     for(int i = 0; i < request_count; i++){
-        if (replies[i].received) printf("%.3fms ", replies[i].rtt);
-        else printf("* ");
-
+        if (replies[i].received) {
+          if(verbose) printf("%.3fms ", replies[i].rtt);
+          sum += replies[i].rtt;
+        }
+        else{
+          if(verbose) printf("* ");
+          else{
+            printf("??? ");
+            sum = 0;
+            break;
+          }
+        }
     }
+    if(!verbose && sum != 0) printf("%.3fms ", sum/request_count);
     printf("\n");
 }
 
-int receive_and_print_replies(int sock_fd, const char*expected_address_str, int id, int request_count, const double *request_send_time){
+int receive_and_print_replies(int sock_fd, const char*expected_address_str, int id, int request_count, const double *request_send_time, bool verbose){
     int received_reply_count = 0, return_value = 1, ready;
 
     replyInfo_t replies[request_count];
@@ -103,6 +114,6 @@ int receive_and_print_replies(int sock_fd, const char*expected_address_str, int 
         }
     }
 
-    print_results(replies, request_count);
+    print_results(replies, request_count, verbose);
     return return_value;
 }

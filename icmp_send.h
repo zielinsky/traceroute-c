@@ -4,8 +4,6 @@
 
 #include <netinet/in.h>
 
-// Funkcja odbierająca odpowiedzi ICMP i wypisująca wyniki
-int receive_and_print_replies(int sock_fd, const char* expected_address_str, int id, int request_count, const double *request_send_time);
 // Wysyła żądanie echo ICMP do określonego adresu
 int send_echo_request(int sock_fd, struct sockaddr_in *dest_addr, uint16_t id, uint16_t seq, double *send_time);
 
