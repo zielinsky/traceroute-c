@@ -1,27 +1,12 @@
 #include <arpa/inet.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
-#include <netinet/ip6.h>
-#include <netinet/icmp6.h>
-
 #include <errno.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <time.h>
-#include <unistd.h>
-
 #include <stdio.h>
 #include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-
 
 u_int16_t compute_icmp_checksum (const void *buff, int length)
 {
@@ -35,7 +20,7 @@ u_int16_t compute_icmp_checksum (const void *buff, int length)
 }
 
 int set_ttl(int sock_fd, int ttl){
-    if (setsockopt(sock_fd, SOL_IP, IP_TTL, &ttl, sizeof(ttl)) != 0) {
+    if (setsockopt(sock_fd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) != 0) {
         printf("\nSetting socket options to TTL failed !");
         return -1;
     }
@@ -70,24 +55,31 @@ int send_echo_request(int sock_fd, int ttl, struct sockaddr_in *dest_addr, uint1
 
 struct sockaddr_in string_to_addr(const char *ip_addr){
     struct sockaddr_in addr;
+    bzero (&addr, sizeof(addr));
     addr.sin_family = AF_INET;
-
-    addr.sin_port = htons(3490);
     inet_aton(ip_addr, (struct in_addr *) &addr.sin_addr.s_addr);
 
     return addr;
 }
 
-int main(){
+int main(int argc, char **argv){
+    if (argc != 2){
+        fprintf(stderr, "correct usage: ./traceroute x.y.z.q \n");
+        return EXIT_FAILURE;
+    }
+
     int sock_fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
     if (sock_fd < 0) {
         fprintf(stderr, "socket error: %s\n", strerror(errno));
         return EXIT_FAILURE;
     }
 
-    struct sockaddr_in addr = string_to_addr("8.8.8.8");
+    struct sockaddr_in addr = string_to_addr(argv[1]);
     bind(sock_fd, (const struct sockaddr *) &addr, sizeof(addr));
 
-    send_echo_request(sock_fd, 64, &addr, 1, 1);
+    send_echo_request(sock_fd, 1, &addr, 1, 1);
+    send_echo_request(sock_fd, 2, &addr, 1, 2);
+    send_echo_request(sock_fd, 5, &addr, 3, 4);
+    send_echo_request(sock_fd, 10, &addr, 1, 1);
     return 0;
 }
