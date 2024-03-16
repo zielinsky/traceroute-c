@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=gnu17
 LDFLAGS =
-SOURCES = utils.c icmp_receive.c icmp_send.c
+SOURCES = utils.c icmp_receive.c icmp_send.c traceroute.c
 OBJECTS = $(SOURCES:.c=.o)
 EXECUTABLE = traceroute
 
