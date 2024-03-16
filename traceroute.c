@@ -46,8 +46,8 @@ int main(int argc, char **argv){
 
   for(int ttl = 1; ttl < 64; ttl++){
     printf("%d ", ttl);
-    if(send_n_echo_requests(3, ttl, sock_fd, &addr, id, send_time) != 0) continue;
-    if(receive_and_print_replies(sock_fd, argv[1], id, 3, send_time) == 0) break;
+    if(send_n_echo_requests(3, ttl, sock_fd, &addr, id+ttl, send_time) != 0) continue;
+    if(receive_and_print_replies(sock_fd, argv[1], id+ttl, 3, send_time) == 0) break;
   }
 
   return 0;
