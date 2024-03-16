@@ -26,7 +26,6 @@ int set_ttl(int sock_fd, int ttl){
         printf("\nSetting socket options to TTL failed !");
         return -1;
     }
-
     return 0;
 }
 
@@ -54,7 +53,7 @@ int send_echo_request(int sock_fd, struct sockaddr_in *dest_addr, uint16_t id, u
     return 0;
 }
 
-struct sockaddr_in string_to_addr(const char *ip_addr){
+struct sockaddr_in parse_str_address(const char *ip_addr){
     struct sockaddr_in addr;
     bzero (&addr, sizeof(addr));
     addr.sin_family = AF_INET;
@@ -82,18 +81,17 @@ int main(int argc, char **argv){
         return EXIT_FAILURE;
     }
 
-    struct sockaddr_in addr = string_to_addr(argv[1]);
+    int ttl = 1;
+    int id = getpid();
+    struct sockaddr_in addr = parse_str_address(argv[1]);
+    double *send_time = malloc(4 * sizeof(double));
 //    bind(sock_fd, (const struct sockaddr *) &addr, sizeof(addr));
 
 
-    double *send_time = malloc(4 * sizeof(double));
-    int id = getpid();
-
-    int ttl = 1;
     do{
         printf("%d ", ttl);
         send_n_echo_requests(3, ttl, sock_fd, &addr, id, send_time);
-    }while((ttl++) < 64 && recv_from(sock_fd, argv[1], id, 3, send_time) == 1);
+    }while(ttl++ < 64 && recv_from(sock_fd, argv[1], id, 3, send_time) == 1);
 
     return 0;
 }
