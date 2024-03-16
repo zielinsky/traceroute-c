@@ -16,9 +16,8 @@ double get_time()
 }
 
 int recv_from(int sock_fd, const char* from_ip, int id, int tries, const double *send_time){
-    int reply_number = 0;
-    int ret = 1;
-    double *elapsed_time = malloc(tries * sizeof(double));
+    int reply_number = 0, ret = 1;
+    double elapsed_time[tries];
     char ips[tries][20];
     bzero(elapsed_time, tries * sizeof(double));
 
