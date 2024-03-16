@@ -8,7 +8,8 @@
 #include <stdio.h>
 #include <assert.h>
 #include <unistd.h>
-#include "icmp_receive.c"
+#include "icmp_receive.h"
+#include "utils.h"
 
 u_int16_t compute_icmp_checksum (const void *buff, int length)
 {

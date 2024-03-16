@@ -5,18 +5,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/poll.h>
-#include <time.h>
 #include <stdbool.h>
+#include "utils.h"
 
 #define ECHO_REPLY_TIME_EXCEEDED 11
 #define IS_THE_SAME_ADDRESS(addr1, addr2) (strcmp((addr1),(addr2)) == 0)
 
-double get_time()
-{
-    struct timespec t;
-    clock_gettime(CLOCK_REALTIME, &t);
-    return (double)t.tv_sec + (double)t.tv_nsec*1e-9;
-}
 
 typedef struct replyInfo {
     double rtt;
