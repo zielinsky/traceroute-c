@@ -92,7 +92,7 @@ int receive_and_print_replies(int sock_fd, const char*expected_address_str, int 
             int ip_id = ntohs(icmp_header->un.echo.id);
             int ip_seq = ntohs(icmp_header->un.echo.sequence);
 
-            if(ip_id == id && IS_THE_SAME_ADDRESS(initial_address_str, expected_address_str)){
+            if(ip_id == id && ip_seq < request_count && IS_THE_SAME_ADDRESS(initial_address_str, expected_address_str)){
                 if(IS_THE_SAME_ADDRESS(sender_address_str, expected_address_str)) return_value = 0;
 
                 strcpy(replies[ip_seq].address, sender_address_str);
