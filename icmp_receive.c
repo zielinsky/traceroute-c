@@ -32,27 +32,24 @@ void print_results(replyInfo_t* replies, int request_count){
 
         is_unique = true;
         for(int j = 0; j < i; j++){
-            if(strcmp(replies[i].address, replies[j].address) == 0){
+            if(IS_THE_SAME_ADDRESS(replies[i].address, replies[j].address)){
                 is_unique = false;
                 break;
             }
         }
-        if(is_unique)
-            printf("%s ", replies[i].address);
+        if(is_unique) printf("%s ", replies[i].address);
 
     }
 
     for(int i = 0; i < request_count; i++){
-        if (replies[i].received)
-            printf("%.3fms ", replies[i].rtt);
-        else
-            printf("* ");
+        if (replies[i].received) printf("%.3fms ", replies[i].rtt);
+        else printf("* ");
 
     }
     printf("\n");
 }
 
-int recv_from(int sock_fd, const char*expected_address_str, int id, int request_count, const double *request_send_time){
+int receive_and_print_replies(int sock_fd, const char*expected_address_str, int id, int request_count, const double *request_send_time){
     int received_reply_count = 0, return_value = 1, ready;
 
     replyInfo_t replies[request_count];
@@ -94,16 +91,14 @@ int recv_from(int sock_fd, const char*expected_address_str, int id, int request_
 
                 struct in_addr dst = ip->ip_dst;
                 inet_ntop(AF_INET, &dst, initial_address_str, sizeof(initial_address_str));
-            }else
-                strcpy(initial_address_str, sender_address_str);
+            }else strcpy(initial_address_str, sender_address_str);
 
 
             int ip_id = ntohs(icmp_header->un.echo.id);
             int ip_seq = ntohs(icmp_header->un.echo.sequence);
 
             if(ip_id == id && IS_THE_SAME_ADDRESS(initial_address_str, expected_address_str)){
-                if(IS_THE_SAME_ADDRESS(sender_address_str, expected_address_str))
-                    return_value = 0;
+                if(IS_THE_SAME_ADDRESS(sender_address_str, expected_address_str)) return_value = 0;
 
                 strcpy(replies[ip_seq].address, sender_address_str);
                 replies[ip_seq].rtt = (get_time() - request_send_time[ip_seq]) * 1000;
