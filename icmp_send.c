@@ -63,6 +63,13 @@ struct sockaddr_in string_to_addr(const char *ip_addr){
     return addr;
 }
 
+void send_n_echo_requests(int n, int ttl, int sock_fd, struct sockaddr_in *dest_addr, uint16_t id, double *send_time){
+    set_ttl(sock_fd, ttl);
+    for(int i = 0; i < n; i++){
+        send_echo_request(sock_fd, dest_addr, id, i, send_time);
+    }
+}
+
 int main(int argc, char **argv){
     if (argc != 2){
         fprintf(stderr, "correct usage: ./traceroute x.y.z.q \n");
@@ -76,21 +83,17 @@ int main(int argc, char **argv){
     }
 
     struct sockaddr_in addr = string_to_addr(argv[1]);
-    bind(sock_fd, (const struct sockaddr *) &addr, sizeof(addr));
+//    bind(sock_fd, (const struct sockaddr *) &addr, sizeof(addr));
 
 
     double *send_time = malloc(4 * sizeof(double));
     int id = getpid();
 
-    int finished = 1;
-    for(int ttl = 1; ttl < 64 && (finished == 1); ttl ++){
-        set_ttl(sock_fd, ttl);
-        printf("%d ", ttl-1);
-        send_echo_request(sock_fd, &addr, id, 0, send_time);
-        send_echo_request(sock_fd, &addr, id, 1, send_time);
-        send_echo_request(sock_fd, &addr, id, 2, send_time);
+    int ttl = 1;
+    do{
+        printf("%d ", ttl);
+        send_n_echo_requests(3, ttl, sock_fd, &addr, id, send_time);
+    }while((ttl++) < 64 && recv_from(sock_fd, argv[1], id, 3, send_time) == 1);
 
-        finished = recv_from(sock_fd, argv[1], id, 3, send_time);
-    }
     return 0;
 }

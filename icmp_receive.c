@@ -16,32 +16,32 @@ double get_time()
 }
 
 typedef struct replyInfo {
-    double elapsed_time;
+    double rtt;
     char address[20];
     bool received;
 } replyInfo_t;
 
-void print_results(replyInfo_t* replies, int tries){
-    int guardian;
-    for(int i = 0; i < tries; i++){
+void print_results(replyInfo_t* replies, int request_count){
+    bool is_unique;
+    for(int i = 0; i < request_count; i++){
         if(!replies[i].received)
             continue;
 
-        guardian = 1;
+        is_unique = true;
         for(int j = 0; j < i; j++){
             if(strcmp(replies[i].address, replies[j].address) == 0){
-                guardian = 0;
+                is_unique = false;
                 break;
             }
         }
-        if(guardian)
+        if(is_unique)
             printf("%s ", replies[i].address);
 
     }
 
-    for(int i = 0; i < tries; i++){
+    for(int i = 0; i < request_count; i++){
         if (replies[i].received)
-            printf("%.3fms ", replies[i].elapsed_time);
+            printf("%.3fms ", replies[i].rtt);
         else
             printf("* ");
 
@@ -49,11 +49,11 @@ void print_results(replyInfo_t* replies, int tries){
     printf("\n");
 }
 
-int recv_from(int sock_fd, const char* from_ip, int id, int tries, const double *send_time){
+int recv_from(int sock_fd, const char*dest_address_str, int id, int request_count, const double *request_send_time){
     int reply_number = 0, return_value = 1;
 
-    replyInfo_t replies[tries];
-    bzero(replies, tries * sizeof(replyInfo_t));
+    replyInfo_t replies[request_count];
+    bzero(replies, request_count * sizeof(replyInfo_t));
 
     char sender_ip_str[20];
     struct sockaddr_in sender;
@@ -69,7 +69,7 @@ int recv_from(int sock_fd, const char* from_ip, int id, int tries, const double 
 
     int ready;
     double start_time = get_time();
-    while ((get_time() - start_time) <= 1.0 && reply_number < tries) {
+    while ((get_time() - start_time) <= 1.0 && reply_number < request_count) {
         ready = poll (&ps, 1, 1000);
 
         while(ready-- && ps.revents == POLLIN){
@@ -100,18 +100,18 @@ int recv_from(int sock_fd, const char* from_ip, int id, int tries, const double 
             int ip_id = ntohs(icmp_header->un.echo.id);
             int ip_seq = ntohs(icmp_header->un.echo.sequence);
 
-            if(ip_id == id && (strcmp(original_dest_ip_str, from_ip) == 0)){
-                if(strcmp(sender_ip_str, from_ip) == 0){
+            if(ip_id == id && (strcmp(original_dest_ip_str, dest_address_str) == 0)){
+                if(strcmp(sender_ip_str, dest_address_str) == 0){
                     return_value = 0;
                 }
                 strcpy(replies[ip_seq].address, sender_ip_str);
-                replies[ip_seq].elapsed_time = (get_time() - send_time[ip_seq]) * 1000;
+                replies[ip_seq].rtt = (get_time() - request_send_time[ip_seq]) * 1000;
                 replies[ip_seq].received = true;
                 reply_number++;
             }
         }
     }
 
-    print_results(replies, tries);
+    print_results(replies, request_count);
     return return_value;
 }
